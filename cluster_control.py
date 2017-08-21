@@ -20,35 +20,6 @@ def getApiResource():
         password = PASSWORD, 
         version = VERSION))
 
-def startCM(api):
-    cm = api.get_cloudera_manager()
-    cms = cm.get_service()
-    cms.start()
-    
-    print (cms.serviceState)
-    wait_time = 0
-    while cms.serviceState != 'STARTED':
-        sleep(5)
-        wait_time += 5
-        cms = cm.get_service()
-        print (str(wait_time) + '\tstarting\t' + cms.serviceState + '\t' + cms.healthSummary)
-    return
-    
-def stopCM(api):
-    cm = api.get_cloudera_manager()
-    cms = cm.get_service()
-    cms.stop()
-    
-    # wait, at 5 sec intervals, for the command to stop running
-    print (cms.serviceState)
-    wait_time = 0
-    while cms.serviceState != 'STOPPED':
-        sleep(5)
-        wait_time += 5
-        cms = cm.get_service()
-        print (str(wait_time) + '\tstopping\t' + cms.serviceState)
-    return
-
 def controlCM(api, cm_action = None):
     # Start or stop Cloudera Management Service
     cm = api.get_cloudera_manager()
@@ -58,22 +29,24 @@ def controlCM(api, cm_action = None):
     
     if cm_action.lower() == 'start':
         cm_endstate = 'STARTED'
+        print('starting CM')
         cms.start()
         while cms.serviceState != cm_endstate:
             sleep(5)
             wait_time += 5
             cms = cm.get_service()
-            print (str(wait_time) + '\tstarting\t')
+            print (str(wait_time) + '\tstarting\t' + cms.serviceState)
         print ('CM started')
         return
     elif cm_action.lower() == 'stop':
         cm_endstate = 'STOPPED'
+        print('stopping CM')
         cms.stop()
         while cms.serviceState != cm_endstate:
             sleep(5)
             wait_time += 5
             cms = cm.get_service()    
-            print (str(wait_time) + '\tstopping\t')
+            print (str(wait_time) + '\tstopping\t' + cms.serviceState)
         print ('CM stopped')
         return
     elif cm_action == None:
@@ -90,7 +63,7 @@ def controlCM(api, cm_action = None):
     
 def controlCluster(api, cluster_name, cluster_action = None):
     # Start or stop the Cluster 
-        
+    pass 
 
 def main():
     api = getApiResource()
@@ -101,9 +74,9 @@ def main():
     
     # Toggle CM between start and stop
     if cms.serviceState == 'STARTED':
-        stopCM(api)
+        controlCM(api, 'stop')
     elif cms.serviceState == 'STOPPED':
-        startCM(api)
+        controlCM(api, 'start')
     else:
         print(cms.serviceState)
         
