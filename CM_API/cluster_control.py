@@ -70,6 +70,28 @@ def controlCluster(api, cluster_name, cluster_action = None):
     # Start or stop the Cluster 
     pass 
 
+def updateConfig(cluster, service_type, config_dict, deploy_client_configs = False):
+            
+    for service in cluster.get_all_services():
+        if service.type == service_type:
+                my_service = service
+            
+                for my_rcg in my_service.get_all_role_config_groups():
+                    my_rcg.update_config(config_dict)
+                    print ('updated' + str(config_dict))
+                    
+        if deploy_client_configs:
+            # deploy cluster client configuration if specified
+            cluster.deploy_client_config()
+            cluster.restart(restart_only_stale_services = True, redeploy_client_configuration = True)
+            print ('deployed client configuration')
+    return
+
+def getKmsAcls (filename):
+    CONFIG = 'kms-acls.xml_role_safety_valve'
+    file = open(filename, 'r')
+    return {CONFIG: file.read()}
+    
 def main():
     api = getApiResource()
     
@@ -84,27 +106,17 @@ def main():
 #         controlCM(api, 'start')
 #     else:
 #         print(cms.serviceState)
-     
+
+    service_type = 'KMS'
+    config_dict = getKmsAcls ('kms-acls.xml') 
+    # {'kms-acls.xml_role_safety_valve': '<property><name>hadoop.kms.acl.DELETE</name><value>gene gene</value></property>'}
+
     # loop through the all clusters 
     for cluster in api.get_all_clusters(view = "full"):
         print (cluster.name + '\t' + 
                cluster.version + '\t' + 
                cluster.fullVersion)
-        
-#         cluster.deploy_client_config()
-#         print ('Client config deployed')
-         
-        for service in cluster.get_all_services():
-            if service.type == 'KMS':
-                my_kms = service
-            
-                for kms_rcg in my_kms.get_all_role_config_groups():
-                    new_kms_acls = {'kms-acls.xml_role_safety_valve': '<property><name>hadoop.kms.acl.DELETE</name><value>fred fred</value></property>'}
-                    kms_rcg.update_config(new_kms_acls)
-                    print ('configuration updated')
-        # deploy cluster client configuration
-        cluster.deploy_cluster_client_config()
-        print ('deployed client configuration')
+        updateConfig(cluster, service_type, config_dict)     
          
     # start/stop the cluster
 #     clust_cmd = my_clust.start()
