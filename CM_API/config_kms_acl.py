@@ -46,8 +46,8 @@ def updateConfig(cluster, service_type, config_dict, deploy_client_configs = Fal
 
 def getKmsAcls (filename):
     CONFIG = 'kms-acls.xml_role_safety_valve'
-    file = open(filename, 'r')
-    return {CONFIG: file.read()}
+    file_handle = open(filename, 'r')
+    return {CONFIG: file_handle.read()}
     
 def main():
     SERVICE_TYPE = 'KMS'
@@ -57,15 +57,8 @@ def main():
     
     api = getApiResource()
     
-    # get Cloudera Management Service
-    cm = api.get_cloudera_manager()
-    cms = cm.get_service()
-
     # loop through the all clusters 
     for cluster in api.get_all_clusters(view = "full"):
-        print (cluster.name + '\t' + 
-               cluster.version + '\t' + 
-               cluster.fullVersion)
         updateConfig(cluster, SERVICE_TYPE, config_dict)     
     
 if __name__ == '__main__':
