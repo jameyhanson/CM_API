@@ -2,6 +2,9 @@
 Created on Aug 20, 2017
 
 @author: jamey
+
+Ref: https://cloudera.github.io/cm_api/docs/python-client/
+     https://github.com/cloudera/cm_api/tree/master/python
 '''
 
 from cm_api.api_client import ApiResource, ApiException
@@ -24,16 +27,16 @@ def controlCM(api, cm_action = None):
     # Start or stop Cloudera Management Service
     cm = api.get_cloudera_manager()
     cms = cm.get_service()
-    
+
     wait_time = 0
-    
+    sleep_interval = 5    
     if cm_action.lower() == 'start':
         cm_endstate = 'STARTED'
         print('starting CM')
         cms.start()
         while cms.serviceState != cm_endstate:
-            sleep(5)
-            wait_time += 5
+            sleep(sleep_interval)
+            wait_time += sleep_interval
             cms = cm.get_service()
             print (str(wait_time) + '\tstarting\t' + cms.serviceState)
         print ('CM started')
@@ -79,11 +82,6 @@ def main():
         controlCM(api, 'start')
     else:
         print(cms.serviceState)
-        
-    wait_time = 0
-    while 1 == 2:
-        print (str(wait_time) + '\tstopping\t' + cms.serviceState)
-
     
 #     # loop through the cluster and print details
 #     for clusters in api.get_all_clusters(view = "full"):
@@ -105,6 +103,5 @@ def main():
 #     for cms_running_commands in cms.get_commands(view = None):
 #         print(cms_running_commands)
     
-    print('\ndone')
 if __name__ == '__main__':
     main()
