@@ -1,6 +1,8 @@
 '''
 Created on Aug 20, 2017
 
+Control the cluster and Cloudera Manager Service
+
 @author: jamey
 
 Ref: https://cloudera.github.io/cm_api/docs/python-client/
@@ -27,6 +29,7 @@ def getApiResource():
 
 def controlCM(api, cm_action = None):
     # Start or stop Cloudera Management Service
+    # if cm_action is not specified, toggle start / stop
     cm = api.get_cloudera_manager()
     cms = cm.get_service()
 
@@ -69,29 +72,7 @@ def controlCM(api, cm_action = None):
 def controlCluster(api, cluster_name, cluster_action = None):
     # Start or stop the Cluster 
     pass 
-
-def updateConfig(cluster, service_type, config_dict, deploy_client_configs = False):
-            
-    for service in cluster.get_all_services():
-        if service.type == service_type:
-                my_service = service
-            
-                for my_rcg in my_service.get_all_role_config_groups():
-                    my_rcg.update_config(config_dict)
-                    print ('updated' + str(config_dict))
-                    
-        if deploy_client_configs:
-            # deploy cluster client configuration if specified
-            cluster.deploy_client_config()
-            cluster.restart(restart_only_stale_services = True, redeploy_client_configuration = True)
-            print ('deployed client configuration')
-    return
-
-def getKmsAcls (filename):
-    CONFIG = 'kms-acls.xml_role_safety_valve'
-    file = open(filename, 'r')
-    return {CONFIG: file.read()}
-    
+  
 def main():
     api = getApiResource()
     
@@ -100,23 +81,7 @@ def main():
     cms = cm.get_service()
     
     # Toggle CM between start and stop
-#     if cms.serviceState == 'STARTED':
-#         controlCM(api, 'stop')
-#     elif cms.serviceState == 'STOPPED':
-#         controlCM(api, 'start')
-#     else:
-#         print(cms.serviceState)
-
-    service_type = 'KMS'
-    config_dict = getKmsAcls ('kms-acls.xml') 
-    # {'kms-acls.xml_role_safety_valve': '<property><name>hadoop.kms.acl.DELETE</name><value>gene gene</value></property>'}
-
-    # loop through the all clusters 
-    for cluster in api.get_all_clusters(view = "full"):
-        print (cluster.name + '\t' + 
-               cluster.version + '\t' + 
-               cluster.fullVersion)
-        updateConfig(cluster, service_type, config_dict)     
+    controlCM(api)    
          
     # start/stop the cluster
 #     clust_cmd = my_clust.start()
