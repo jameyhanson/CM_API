@@ -50,29 +50,23 @@ def getKmsAcls (filename):
     return {CONFIG: file.read()}
     
 def main():
+    SERVICE_TYPE = 'KMS'
+    KMS_ACLS_XML = 'kms-acls.xml'
+    
+    config_dict = getKmsAcls(KMS_ACLS_XML) 
+    
     api = getApiResource()
     
     # get Cloudera Management Service
     cm = api.get_cloudera_manager()
     cms = cm.get_service()
-    
-    service_type = 'KMS'
-    config_dict = getKmsAcls('kms-acls.xml') 
 
     # loop through the all clusters 
     for cluster in api.get_all_clusters(view = "full"):
         print (cluster.name + '\t' + 
                cluster.version + '\t' + 
                cluster.fullVersion)
-        updateConfig(cluster, service_type, config_dict)     
-         
-    # start/stop the cluster
-#     clust_cmd = my_clust.start()
-#     print ("Active: %s. Success: %s" % (clust_cmd.active, clust_cmd.success))
-#     clust_cmd.wait()
-#     print ("Active: %s. Success: %s" % (clust_cmd.active, clust_cmd.success))
-     
-
+        updateConfig(cluster, SERVICE_TYPE, config_dict)     
     
 if __name__ == '__main__':
     main()
