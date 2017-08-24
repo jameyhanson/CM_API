@@ -135,27 +135,27 @@ def genNewProperties(new_acl_group):
                            '</value></property>')
     return(new_kms_acl_properties)
 
-def updateKmsAclXML(kms_service, new_kms_acl_xml_dict):
+def updateKmsAclXML(kms_service, new_kms_acl_xml_dict, new_acl_group):
     for kms_rcg in kms_service.get_all_role_config_groups():
         try:
             kms_rcg.update_config(new_kms_acl_xml_dict)
-            print('updated kms_acls.xml with ' + kms_service)
+            print('updated kms_acls.xml with ' + new_acl_group)
             return
         except ApiException:
             print('failure in updating kms-acls.xml')
             exit()
         except:
             print('other failure in updateKmsAclXML')
-            exit()
+
 def deployClientConfig(my_cluster):
     try:
         my_cluster.restart(restart_only_stale_services = True, 
                            redeploy_client_configuration = True)
         print('re-deployed client configuration and restarted +\n' +
-              'stale services.')
+              '\tstale services.')
     except ApiException:
         print('failure in redeploying client configuration \n' +
-               'and restarting stale services')
+               '\tand restarting stale services')
         exit()
     except:
         print('other failure in deployClientConfig')
@@ -176,7 +176,7 @@ def main():
     new_kms_acl_properties = genNewProperties(new_acl_group)
     updated_kms_acl_xml = kms_acl_xml + new_kms_acl_properties
     new_kms_acl_xml_dict = {kms_acl_xml_name: updated_kms_acl_xml}
-    updateKmsAclXML(kms_service, new_kms_acl_xml_dict) 
+    updateKmsAclXML(kms_service, new_kms_acl_xml_dict, new_acl_group) 
     deployClientConfig(my_cluster)
     print('add_kms_acl_key.py done')
 
