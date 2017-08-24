@@ -28,7 +28,7 @@ def getApiResource():
         version = VERSION))
 
 def updateConfig(cluster, service_type, config_dict, deploy_client_configs = False):
-            
+    
     for service in cluster.get_all_services():
         if service.type == service_type:
                 my_service = service

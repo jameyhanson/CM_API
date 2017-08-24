@@ -88,8 +88,6 @@ def main():
 #     print ("Active: %s. Success: %s" % (clust_cmd.active, clust_cmd.success))
 #     clust_cmd.wait()
 #     print ("Active: %s. Success: %s" % (clust_cmd.active, clust_cmd.success))
-     
-
     
 if __name__ == '__main__':
     main()
