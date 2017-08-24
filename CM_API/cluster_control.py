@@ -27,7 +27,7 @@ def getApiResource():
         password = PASSWORD, 
         version = VERSION))
 
-def controlCM(api, cm_action = None):
+def controlCM(api, cm_action = '0'):
     # Start or stop Cloudera Management Service
     # if cm_action is not specified, toggle start / stop
     cm = api.get_cloudera_manager()
@@ -57,7 +57,7 @@ def controlCM(api, cm_action = None):
             print (str(wait_time) + '\tstopping\t' + cms.serviceState)
         print ('CM stopped')
         return
-    elif cm_action == None:
+    elif cm_action == '0':
         if cms.serviceState == 'STOPPED':
             controlCM(api, 'start')
         elif cms.serviceState == 'STARTED':
