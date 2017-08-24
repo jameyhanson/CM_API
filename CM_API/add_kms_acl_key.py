@@ -215,17 +215,25 @@ def main():
     kms_acl_xml_name = 'kms-acls.xml_role_safety_valve'
     
     cm_host, cm_port, cm_username, cm_password, cluster_name = getCMConfig(FILENAME)
+    
     api_resource = getApiResource(cm_host, cm_port, cm_username, cm_password, CM_VERSION)
+    
     my_cluster = getCluster(api_resource, cluster_name)
-    print('C')
+
     kms_service = getKMSService(my_cluster)
-    print('D')
+    
     kms_acl_xml = getKMS_ACL_XML(kms_service)
+    
     new_acl_group = getGroupName()
+    
     new_kms_acl_properties = genNewProperties(new_acl_group)
+    
     updated_kms_acl_xml = kms_acl_xml + new_kms_acl_properties
+    
     new_kms_acl_xml_dict = {kms_acl_xml_name: updated_kms_acl_xml}
+    
     updateKmsAclXML(kms_service, new_kms_acl_xml_dict) 
+    
     print('updated kms_acls.xml with ' + new_acl_group)
     deployClientConfig(my_cluster)
     print('re-deployed client configuration and restarted +\n' + 
