@@ -22,14 +22,22 @@ from sys import argv, exit
 from getpass import getpass
 
 def getCMConfig(fileName):
+    """
+    Return the configuration parameters in cm.ini
+    A CLI prompt is launched if the username and password
+    are not in cm.ini
+    """
     def promptForPassword():
-        # if password is not in configuration file
+        """
+        prompt for username and pasword
+        if not included in configuration file
+        """
         cm_username = raw_input('Enter CM username: ')
         cm_password = getpass('Enter CM password: ')
         return(cm_username, cm_password)
     
-    # test to see if file exists.  config.read does not return exception
     config = ConfigParser.ConfigParser()
+    """Python doc recommended way to test for existence of config file"""
     try:
         config.readfp(open(fileName))
     except ParsingError:
@@ -40,7 +48,7 @@ def getCMConfig(fileName):
         exit()
     
     config.read(fileName)
-    
+    """Config file is actually read here"""
     try:
         cm_host = config.get('CM_host', 'hostname')
     except:
@@ -71,7 +79,10 @@ def getCMConfig(fileName):
     return cm_host, cm_port, cm_username, cm_password, cluster_name
 
 def getApiResource(cm_host, cm_port, cm_username, cm_password, cm_version):
-    # get resourceAPI 
+    """
+    Accepts CM connection, username and password and returns
+    CM_API ApiResource
+    """
     
     try:
         return(ApiResource(
@@ -87,6 +98,9 @@ def getApiResource(cm_host, cm_port, cm_username, cm_password, cm_version):
         exit()
 
 def getCluster(api_resource, cluster_name):
+    """
+    Returns the CM_API cluster object matching the passed name
+    """
     my_cluster = 'not_found'
     
     try:
@@ -110,6 +124,9 @@ def getCluster(api_resource, cluster_name):
         return my_cluster
 
 def getKMSService(my_cluster):
+    """
+    Returns the Java KeyStore KMS service in the passed cluster object 
+    """
     KMS_SERVICE_TYPE = 'KMS'
     kms_service = 'not_found'
     
@@ -124,6 +141,9 @@ def getKMSService(my_cluster):
         return(kms_service)
 
 def getKMS_ACL_XML(kms_service):
+    """
+    Get the original (before update) kms-acl.xml value from the passed KMS service
+    """
     kms_acl_xml_name = 'kms-acls.xml_role_safety_valve'
     for kms_rcg in kms_service.get_all_role_config_groups():
         try:
@@ -133,6 +153,10 @@ def getKMS_ACL_XML(kms_service):
             exit()
             
 def getGroupName():
+    """
+    Get the ACL group name command-line argument
+    This group name is added to the kms-acl.xml
+    """
     try:
         group_name = argv[1]
         return(group_name)
@@ -141,6 +165,10 @@ def getGroupName():
         exit()
 
 def genNewProperties(new_acl_group):
+    """
+    Generate the kms-acl.xml snippet for the two properties created
+    based on the group name
+    """
     new_kms_acl_properties = ('<property><name>key.acl.' +
                            new_acl_group + '_key.READ' + '</name>' +
                            '<value>' + new_acl_group + ' ' + new_acl_group +
@@ -152,6 +180,10 @@ def genNewProperties(new_acl_group):
     return(new_kms_acl_properties)
 
 def updateKmsAclXML(kms_service, new_kms_acl_xml_dict):
+    """
+    Update the KMS service kms-acl.xml property with the new XML snippet
+    containing the new group
+    """
     for kms_rcg in kms_service.get_all_role_config_groups():
         try:
             kms_rcg.update_config(new_kms_acl_xml_dict)
@@ -163,6 +195,10 @@ def updateKmsAclXML(kms_service, new_kms_acl_xml_dict):
             print('other failure in updateKmsAclXML')
 
 def deployClientConfig(my_cluster):
+    """
+    After the kms-acm.xml configuration has been updated, deploy client
+    configuration and restart stale services
+    """
     try:
         my_cluster.restart(restart_only_stale_services = True, 
                            redeploy_client_configuration = True)
