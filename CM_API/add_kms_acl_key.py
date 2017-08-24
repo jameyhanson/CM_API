@@ -19,12 +19,13 @@ import ConfigParser
 from ConfigParser import ParsingError
 from cm_api.api_client import ApiResource, ApiException
 from sys import argv, exit
+from getpass import getpass
 
 def getCMConfig(fileName):
     def promptForPassword():
         # if password is not in configuration file
         cm_username = raw_input('Enter CM username: ')
-        cm_password = raw_input('Encter CM password: ')
+        cm_password = getpass('Enter CM password: ')
         return(cm_username, cm_password)
     
     # test to see if file exists.  config.read does not return exception
@@ -72,17 +73,32 @@ def getCMConfig(fileName):
 def getApiResource(cm_host, cm_port, cm_username, cm_password, cm_version):
     # get resourceAPI 
     
-    return(ApiResource(
-        cm_host, 
-        username = cm_username, 
-        password = cm_password, 
-        version = cm_version))
+    try:
+        return(ApiResource(
+            cm_host, 
+            username = cm_username, 
+            password = cm_password, 
+            version = cm_version))
+    except ApiException:
+        print('unable to connect to CM.  Check username / password')
+        exit()
+    except:
+        print('other error in getApiResource')
+        exit()
 
 def getCluster(api_resource, cluster_name):
     my_cluster = 'not_found'
-    for cluster in api_resource.get_all_clusters():
-        if cluster.name == cluster_name:
-            my_cluster = cluster
+    
+    try:
+        for cluster in api_resource.get_all_clusters():
+            if cluster.name == cluster_name:
+                my_cluster = cluster
+    except ApiException:
+        print('ApiException in getCluster.  Check credentials')
+        exit()
+    except:
+        print('other exception in getCluster')
+        exit()
     
     if my_cluster == 'not_found':
         print ('found these clusters:')
@@ -135,11 +151,10 @@ def genNewProperties(new_acl_group):
                            '</value></property>')
     return(new_kms_acl_properties)
 
-def updateKmsAclXML(kms_service, new_kms_acl_xml_dict, new_acl_group):
+def updateKmsAclXML(kms_service, new_kms_acl_xml_dict):
     for kms_rcg in kms_service.get_all_role_config_groups():
         try:
             kms_rcg.update_config(new_kms_acl_xml_dict)
-            print('updated kms_acls.xml with ' + new_acl_group)
             return
         except ApiException:
             print('failure in updating kms-acls.xml')
@@ -151,8 +166,6 @@ def deployClientConfig(my_cluster):
     try:
         my_cluster.restart(restart_only_stale_services = True, 
                            redeploy_client_configuration = True)
-        print('re-deployed client configuration and restarted +\n' +
-              '\tstale services.')
     except ApiException:
         print('failure in redeploying client configuration \n' +
                '\tand restarting stale services')
@@ -166,18 +179,21 @@ def main():
     kms_acl_xml_name = 'kms-acls.xml_role_safety_valve'
     
     cm_host, cm_port, cm_username, cm_password, cluster_name = getCMConfig(FILENAME)
-    
     api_resource = getApiResource(cm_host, cm_port, cm_username, cm_password, CM_VERSION)
-    
     my_cluster = getCluster(api_resource, cluster_name)
+    print('C')
     kms_service = getKMSService(my_cluster)
+    print('D')
     kms_acl_xml = getKMS_ACL_XML(kms_service)
     new_acl_group = getGroupName()
     new_kms_acl_properties = genNewProperties(new_acl_group)
     updated_kms_acl_xml = kms_acl_xml + new_kms_acl_properties
     new_kms_acl_xml_dict = {kms_acl_xml_name: updated_kms_acl_xml}
-    updateKmsAclXML(kms_service, new_kms_acl_xml_dict, new_acl_group) 
+    updateKmsAclXML(kms_service, new_kms_acl_xml_dict) 
+    print('updated kms_acls.xml with ' + new_acl_group)
     deployClientConfig(my_cluster)
+    print('re-deployed client configuration and restarted +\n' + 
+          '\tstale services.')
     print('add_kms_acl_key.py done')
 
 if __name__ == '__main__':
