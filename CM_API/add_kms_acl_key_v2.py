@@ -13,78 +13,159 @@ Ref: https://cloudera.github.io/cm_api/docs/python-client/
      https://github.com/cloudera/cm_api/tree/master/python      
 
 @author: jamey
+
+ToDo:
+1. pass dictionaries between functions
+2. try to get password from environment.  Scope
+  a. config.ini
+  b. environment CM_USER, CM_PASSWORD
+  c. command-line arguments
+3. change command 
 '''
 
-import ConfigParser
-from ConfigParser import ParsingError
+from ConfigParser import ConfigParser, ParsingError
 from cm_api.api_client import ApiResource, ApiException
 from sys import argv, exit
 from getpass import getpass
+import argparse
+import os
 
 def getCMConfig(fileName):
-    """
-    Return the configuration parameters in cm.ini
-    A CLI prompt is launched if the username and password
-    are not in cm.ini
-    """
+    '''
+    Get all program parameters
+    most come from FILENAME ini (configuration) file
     
-    cm_config = {}
-    
-    def promptForPassword():
-        """
-        prompt for username and pasword
-        if not included in configuration file
-        """
-        cm_username = raw_input('Enter CM username: ')
-        cm_password = getpass('Enter CM password: ')
-        return(cm_username, cm_password)
-    
-    config = ConfigParser.ConfigParser()
-    """Python doc recommended way to test for existence of config file"""
-    try:
-        config.readfp(open(fileName))
-    except ParsingError:
-        print("could not parse " + fileName)
-        exit()
-    except:
-        print("could not open " + fileName)
-        exit()
-    
-    config.read(fileName)
-    """Config file is actually read here"""
-    try:
-        cm_host = config.get('CM_host', 'hostname')
-    except:
-        print( 'no value for [CM_host]\nhostname: <hostname> ')
-        exit()
-    
-    try:
-        cm_port = config.get('CM_host', 'port')
-    except:
-        print('no value for [CM_host]\nport: <port>')
-        exit()
-    
-    try:
-        cm_username = config.get('CM_account', 'username')
-        cm_password = config.get('CM_account', 'password')
-    except:
-        cm_username = None
-        cm_password = None
+    cm_user, cm_password and new_org are determined, in order of precedence
+    NOTE:  ini file is mandatory, even if command-line or environment variables 
+        are used
+    1. command-line argument(s)
+       --cm_user
+       --cm_password
+       --new_cm_org
+    2. configuration file
+    3. OS environment variable(s)
+       $CM_USER
+       $CM_PASSWORD
+       $NEW_CM_ORG
+    4. prompt for username and password
+    '''
+    def readConfigFile(fileName):
+        my_cm_config = {}
+        # Read configuration file    
+        config = ConfigParser()
+
+        ''''Python doc recommended way to test for existence of config file'''
+        try:
+            config.readfp(open(fileName))
+        except ParsingError:
+            print("could not parse " + fileName)
+            exit()
+        except:
+            print("could not open " + fileName)
+            exit()
         
-    if (cm_username == None or cm_password == None):
-        cm_username, cm_password = promptForPassword()
+        config.read(fileName)
         
-    try:
-        cluster_name = config.get('CM_cluster', 'cluster_name')
-    except:
-        print('no value for [CM_cluster]\ncluster_name: <port>')
+        '''Config file read here'''
+        try:
+            my_cm_config['cm_host'] = config.get('CM_host', 'hostname')
+        except:
+            print( 'no value for [CM_host]\nhostname: <hostname>')
+            exit()
         
-    cm_config['cm_host'] = cm_host
-    cm_config['cm_port'] = cm_port
-    cm_config['cm_username'] = cm_username
-    cm_config['cm_password'] = cm_password
-    cm_config['cluster_name'] = cm_cluster_name
-    return cm_config
+        try:
+            my_cm_config['cm_port'] = config.get('CM_host', 'port')
+        except:
+            print('no value for [CM_port]\nport: <port>')
+            exit()
+            
+        try:
+            my_cm_config['cluster_name'] = config.get('CM_cluster', 'cluster_name')
+        except:
+            print('no value for [CM_cluster]\ncluster_name: <cluster>')
+            exit()
+        
+        try:
+            my_cm_config['cm_user'] = config.get('CM_account', 'cm_user')
+            my_cm_config['cm_pass'] = config.get('CM_account', 'cm_password')
+        except:
+            my_cm_config['cm_user'] = None
+            my_cm_config['cm_pass'] = None
+            
+        try:
+            cluster_name = config.get('CM_cluster', 'cluster_name')
+        except:
+            print('no value for [CM_cluster]\ncluster_name: <port>')
+            
+        return my_cm_config
+    
+    def get_commandline_args():
+        """Read in command line arguments
+        --new_org is mandatory
+        --cm_user and --cm_pass are optional"""
+        
+        parser=argparse.ArgumentParser()
+        
+        parser.add_argument('--new_org', help='New organization to add')
+        parser.add_argument('--cm_user', help='CM username')
+        parser.add_argument('--cm_pass', help='CM password')
+        args = parser.parse_args()
+        
+        return(args.new_org, args.cm_user, args.cm_pass)
+    
+    def get_environment_variables():
+        #return(os.environ['CM_USER'], os.environ['CM_PASS'])
+        
+        try:
+            env_cm_user = os.environ['CM_USER']
+            env_cm_pass = os.environ['CM_PASS']
+        except:
+            return(None, None)
+        
+        return('env_user', 'env_pass')
+    
+    def prompt_user_pass():
+        """No cm_user and cm_pass provided in ini, cli or env
+        therefore prompt for values"""
+        prompt_cm_user = raw_input('Enter the CM username: ')
+        prompt_cm_pass = getpass('Enter the CM password: ')
+        
+        return(prompt_cm_user, prompt_cm_pass)
+    
+    # get values from configuration file
+    my_cm_config = readConfigFile(fileName)
+    
+    # get command-line arguments
+    new_org, cli_cm_user, cli_cm_pass = get_commandline_args()
+    if new_org == None:
+        print("""
+        No new organization provided.
+        Pass the new organization as an argument '--new_org <new_org>'
+        """)
+        exit()
+    my_cm_config['new_org'] = new_org
+    
+    # get environment variables
+    env_cm_user, env_cm_pass = get_environment_variables()
+
+    ''' establish precedence for cm_user, cm_pass
+    determine if a prompt is needed'''
+    
+    if (cli_cm_user != None and cli_cm_pass != None):
+        # check CLI for user and pass
+        my_cm_config['cm_user'] = cli_cm_user
+        my_cm_config['cm_pass'] = cli_cm_pass
+    elif (my_cm_config['cm_user'] != None and my_cm_config['cm_pass'] != None):
+        # check the ini for user and pass
+        pass
+    elif (env_cm_user != None and env_cm_pass != None):
+        # check the environment for user and pass
+        my_cm_config['cm_user'] = env_cm_user
+        my_cm_config['cm_pass'] = env_cm_pass
+    else:
+        my_cm_config['cm_user'], my_cm_config['cm_pass'] = prompt_user_pass()
+
+    return(my_cm_config)
 
 def getApiResource(cm_config):
     """
@@ -95,8 +176,8 @@ def getApiResource(cm_config):
     try:
         return(ApiResource(
             cm_config['cm_host'], 
-            username = cm_config['cm_username'], 
-            password = cm_config['cm_password'], 
+            username = cm_config['cm_user'], 
+            password = cm_config['cm_pass'], 
             version = cm_config['cm_version']))
     except ApiException:
         print('unable to connect to CM.  Check username / password')
@@ -218,36 +299,40 @@ def deployClientConfig(my_cluster):
         print('other failure in deployClientConfig')
 
 def main():
-    FILENAME = 'cm.ini'
     CM_VERSION = 15
+    FILENAME = 'cm.ini'
     kms_acl_xml_name = 'kms-acls.xml_role_safety_valve'
     
-    cm_config = getCMConfig(FILENAME)
-    cm_config['cm_version'] = CM_VERSION
+    my_cm_config = getCMConfig(FILENAME)
     
-    api_resource = getApiResource(cm_config)
+    print(my_cm_config) # jph
     
-    my_cluster = getCluster(api_resource, cluster_name)
-
+    my_cm_config['cm_version'] = CM_VERSION
+    
+    api_resource = getApiResource(my_cm_config)
+   
+    my_cluster = getCluster(api_resource, my_cm_config['cluster_name'])
+ 
     kms_service = getKMSService(my_cluster)
     
     kms_acl_xml = getKMS_ACL_XML(kms_service)
-    
-    new_acl_group = getGroupName()
-    
-    new_kms_acl_properties = genNewProperties(new_acl_group)
+     
+    new_kms_acl_properties = genNewProperties(my_cm_config['new_org'])
     
     updated_kms_acl_xml = kms_acl_xml + new_kms_acl_properties
-    
+     
     new_kms_acl_xml_dict = {kms_acl_xml_name: updated_kms_acl_xml}
-    
+     
     updateKmsAclXML(kms_service, new_kms_acl_xml_dict) 
     
-    print('updated kms_acls.xml with ' + new_acl_group)
+    print('updated kms_acls.xml with ' + my_cm_config['new_org'])
+    
     deployClientConfig(my_cluster)
+    
     print('re-deployed client configuration and restarted +\n' + 
           '\tstale services.')
-    print('add_kms_acl_key.py done')
+    
+    print( os.path.basename(__file__) + ' completed.\nWait for stale services.')
 
 if __name__ == '__main__':
     main()
