@@ -305,8 +305,6 @@ def main():
     
     my_cm_config = getCMConfig(FILENAME)
     
-    print(my_cm_config) # jph
-    
     my_cm_config['cm_version'] = CM_VERSION
     
     api_resource = getApiResource(my_cm_config)
