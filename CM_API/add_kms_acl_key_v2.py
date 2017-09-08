@@ -14,13 +14,9 @@ Ref: https://cloudera.github.io/cm_api/docs/python-client/
 
 @author: jamey
 
-ToDo:
-1. pass dictionaries between functions
-2. try to get password from environment.  Scope
-  a. config.ini
-  b. environment CM_USER, CM_PASSWORD
-  c. command-line arguments
-3. change command 
+version:
+1.0   8-Sep-7 jph  Initial release
+
 '''
 
 from ConfigParser import ConfigParser, ParsingError
